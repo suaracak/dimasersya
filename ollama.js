@@ -48,7 +48,7 @@ function normalisasiEndpoint(endpointAwal) {
   ep = ep.replace(/\/api\/chat$/i, '');
   ep = ep.replace(/\/v1(?:\/chat\/completions)?$/i, '');
   ep = ep.replace(/\/+$/, '');
-  if (!ep) ep = 'https://ollama.com/api/chat';
+  if (!ep) ep = 'https://ollama.com';
   return ep;
 }
 
