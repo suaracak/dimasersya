@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Editor Akademik Dimas - Penyunting Naskah Ilmiah (Client-Side BYOK)</title>
+  <meta name="description" content="Aplikasi penyuntingan dan parafrase naskah akademik bahasa Indonesia dengan Anthropic Claude & Ollama Cloud. 100% Client-side dan aman: API key tidak dikirim ke server.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✍️</text></svg>">
+  <link rel="stylesheet" href="gaya.css">
+  <script defer src="bundle.js"></script>
+</head>
+<body>
+  <header class="kepala">
+    <div class="kepala-isi">
+      <div>
+        <p class="eyebrow">RUANG KERJA PENYUNTINGAN AKADEMIK</p>
+        <h1>Editor Akademik Dimas</h1>
+      </div>
+      <div class="header-kanan">
+        <button type="button" id="lencana-status" class="lencana lencana-kunci" title="Atur Kunci API Anthropic atau Ollama">
+          🔑 Atur Kunci API
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <p class="pengantar">Penyunting tulisan akademik bahasa Indonesia: tata alur, perbaiki kalimat kaku, kurasi frasa pengisi, dan periksa kesetiaan fakta terhadap sumber aslinya.</p>
+
+    <div id="spanduk-demo" class="spanduk spanduk-demo" hidden>
+      <strong>Kunci API belum diisi.</strong> Masukkan API Key Anda (Anthropic Claude atau Ollama Cloud seperti <code>gpt-oss:120b</code>) melalui tombol <button type="button" id="tombol-buka-modal-kunci" class="pilihan-saran">Atur Kunci API</button> untuk menjalankan analisis dan revisi langsung di browser. Tanpa kunci API, Anda tetap dapat menggunakan <a href="#bagian-chat">Sunting melalui chat</a> untuk menyalin prompt secara gratis.
+    </div>
+
+    <div class="editor-grid">
+      <!-- Bagian Formulir Input Teks Sumber -->
+      <section class="kartu" id="bagian-sumber" aria-labelledby="judul-sumber">
+        <h2 id="judul-sumber">Teks sumber</h2>
+        <form id="formulir" novalidate>
+          <label class="label" for="sumber">Tempel tulisan yang ingin disunting</label>
+          <textarea id="sumber" rows="9" spellcheck="false" aria-describedby="penghitung" placeholder="Tempel paragraf beserta angka, sitasi, dan istilah teknisnya. Teks asli akan selalu dibandingkan dengan hasil revisi."></textarea>
+          <div id="penghitung" class="penghitung">0 / 15.000 karakter · 0 kata</div>
+
+          <div class="saran-kata">
+            <button type="button" id="tombol-saran-sumber" aria-controls="saran-sumber">Saran pilihan kata</button>
+            <p class="bantuan">Pemeriksaan lokal (tanpa API): menandai ejaan tidak baku KBBI/EYD, pleonasme, dan frasa bertele-tele beserta pilihan yang lebih lugas.</p>
+            <ul id="saran-sumber" class="daftar-saran" aria-live="polite" hidden></ul>
+          </div>
+
+          <label class="label" for="instruksi">Instruksi tambahan <span class="redup">(opsional)</span></label>
+          <textarea id="instruksi" rows="2" maxlength="2000" placeholder="Contoh: pertahankan istilah teknis, sitasi APA 7, dan fokus pada kejelasan subjek."></textarea>
+
+          <details class="pengaturan-detail">
+            <summary>Istilah yang harus dipertahankan</summary>
+            <label class="label" for="istilah">Satu istilah per baris <span class="redup">(opsional)</span></label>
+            <textarea id="istilah" rows="3" maxlength="2000" placeholder="penelitian kualitatif&#10;indikator kesiapan&#10;dan/atau"></textarea>
+            <p class="bantuan">Nama orang, lembaga, istilah teknis, dan frasa hukum dapat dikunci agar tidak diubah atau hilang.</p>
+          </details>
+
+          <div class="pilihan">
+            <fieldset>
+              <legend>Mode</legend>
+              <label class="opsi">
+                <input type="radio" name="mode" value="ringan" checked>
+                <span><strong>Revisi ringan</strong><small>Pertahankan pembagian paragraf, perbaiki diksi dan kalimat janggal.</small></span>
+              </label>
+              <label class="opsi">
+                <input type="radio" name="mode" value="menyeluruh">
+                <span><strong>Revisi alur</strong><small>Boleh menata kalimat dan paragraf. Fakta dan hubungan argumen tetap dijaga.</small></span>
+              </label>
+            </fieldset>
+            <fieldset>
+              <legend>Nada</legend>
+              <label class="opsi">
+                <input type="radio" name="nada" value="mahasiswa" checked>
+                <span><strong>Akademik mahasiswa</strong><small>Jelas dan runtut, seperti menjelaskan analisis ke dosen.</small></span>
+              </label>
+              <label class="opsi">
+                <input type="radio" name="nada" value="formal">
+                <span><strong>Akademik formal</strong><small>Baku, impersonal, dan ringkas seperti artikel jurnal.</small></span>
+              </label>
+            </fieldset>
+          </div>
+
+          <label class="label" for="tujuan">Tujuan penyuntingan</label>
+          <select id="tujuan">
+            <option value="lancar">Lancar dan runtut (kejelasan sambungan argumen)</option>
+            <option value="ringkas">Ringkas tanpa kehilangan isi (hapus pengulangan)</option>
+          </select>
+
+          <details class="pengaturan-detail">
+            <summary>Contoh register gaya tulisanmu (opsional)</summary>
+            <label class="label" for="contoh-gaya">Contoh gaya, maksimal 2.000 karakter</label>
+            <textarea id="contoh-gaya" rows="3" maxlength="2000" placeholder="Tempel contoh tulisan akademikmu yang sudah rapi sebagai rujukan register bahasa."></textarea>
+            <p class="bantuan">Hanya untuk register dan tingkat formalitas. Fakta atau istilah dari contoh ini tidak dimasukkan ke dalam revisi.</p>
+          </details>
+
+          <label class="opsi" for="tinjau">
+            <input type="checkbox" id="tinjau" checked>
+            <span><strong>Editor lalu peninjau terpisah (dua tahap)</strong><small>Tahap 1 menyunting draf, Tahap 2 memverifikasi draf terhadap sumber asli.</small></span>
+          </label>
+
+          <label class="opsi" for="arel">
+            <input type="checkbox" id="arel">
+            <span><strong>Fokus AREL dan kohesi</strong><small>Periksa Assertion (klaim), Reasoning (alasan), Evidence (bukti), dan Link (sambungan).</small></span>
+          </label>
+
+          <p id="catatan-privasi" class="privasi">Memeriksa status Kunci API di browser Anda…</p>
+
+          <div class="baris-tombol">
+            <button type="submit" id="tombol-jalankan" class="tombol-utama">Analisis dan Revisi</button>
+            <span id="status-proses" class="status-proses" aria-live="polite"></span>
+          </div>
+        </form>
+        <div id="galat" class="galat" role="alert" hidden></div>
+      </section>
+
+      <!-- Bagian Sunting Melalui Chat (Jalur Gratis tanpa API Key) -->
+      <section class="kartu" id="bagian-chat" aria-labelledby="judul-chat">
+        <div class="kepala-hasil">
+          <h2 id="judul-chat">Sunting melalui chat</h2>
+          <span class="lencana jalur-chat">Tanpa API key</span>
+        </div>
+        <p class="bantuan">Jika Anda tidak memiliki API Key, Anda bisa menyalin prompt editorial siap pakai berikut dan menjalankannya di Claude atau ChatGPT web gratis.</p>
+        <ol class="langkah-chat">
+          <li>Siapkan prompt dari teks sumber di atas.</li>
+          <li>Salin dan jalankan di Claude.ai atau ChatGPT.</li>
+          <li>Tempel jawabannya di bawah untuk diperiksa.</li>
+        </ol>
+        <div class="baris-tombol">
+          <button type="button" id="tombol-prompt" class="tombol-utama">Siapkan prompt</button>
+          <button type="button" id="tombol-salin-prompt" disabled>Salin prompt</button>
+          <span id="status-chat" class="status-proses" role="status"></span>
+        </div>
+
+        <details id="rincian-prompt" class="pengaturan-detail" hidden>
+          <summary>Lihat prompt yang disiapkan</summary>
+          <label class="label" for="prompt-chat">Prompt siap salin</label>
+          <textarea id="prompt-chat" rows="8" readonly></textarea>
+          <p class="bantuan" id="sumber-prompt"></p>
+        </details>
+
+        <label class="label" for="revisi-chat">Tempel balasan dari chat</label>
+        <textarea id="revisi-chat" rows="5" maxlength="40000" placeholder="Tempel JSON lengkap dari balasan chat atau teks revisinya di sini."></textarea>
+        <div class="baris-tombol">
+          <button type="button" id="tombol-impor">Bandingkan dan periksa hasil</button>
+        </div>
+        <div id="galat-chat" class="galat" role="alert" hidden></div>
+      </section>
+    </div>
+
+    <!-- Bagian Hasil Revisi & Perbandingan -->
+    <section class="kartu" id="bagian-hasil" aria-labelledby="judul-hasil" hidden>
+      <div class="kepala-hasil">
+        <h2 id="judul-hasil">Hasil Penyuntingan</h2>
+        <span id="lencana-sumber" class="lencana"></span>
+      </div>
+
+      <div id="hasil-lama" class="peringatan" role="status" hidden>Teks sumber atau pengaturan telah diubah. Hasil di bawah mengacu pada versi sebelumnya.</div>
+      <p id="ringkasan-hasil" class="ringkasan-hasil"></p>
+      <p id="fokus-hasil" class="bantuan" hidden></p>
+      <p id="tinjauan-kurasi" class="peringatan" role="status" hidden></p>
+      <p id="status-model" class="status-tinjau" role="status"></p>
+
+      <details id="rincian-draf" class="pengaturan-detail" hidden>
+        <summary>Lihat draf editor sebelum peninjau</summary>
+        <div id="draf-editor" class="teks"></div>
+        <button type="button" id="tombol-draf">Gunakan draf pertama</button>
+      </details>
+
+      <p id="status-tinjau" class="status-tinjau" role="status"></p>
+      <label id="label-konfirmasi" class="konfirmasi" hidden>
+        <input type="checkbox" id="konfirmasi-hasil">
+        <span>Saya sudah meninjau perbedaan dan tanda perubahan sebelum menyalin atau mengunduh.</span>
+      </label>
+
+      <div class="alat">
+        <button type="button" id="tombol-salin">Salin revisi</button>
+        <button type="button" id="tombol-txt">Unduh TXT</button>
+        <button type="button" id="tombol-md">Unduh Markdown</button>
+        <button type="button" id="tombol-kembali">Kembali ke teks sumber</button>
+        <span id="umpan" class="umpan" aria-live="polite"></span>
+      </div>
+
+      <div class="tab" role="tablist" aria-label="Tampilan hasil">
+        <button type="button" role="tab" id="tab-berdampingan" aria-controls="panel-berdampingan" aria-selected="true">Teks awal & revisi</button>
+        <button type="button" role="tab" id="tab-perbandingan" aria-controls="panel-perbandingan" aria-selected="false">Perbandingan (Diff)</button>
+        <button type="button" role="tab" id="tab-masukan" aria-controls="panel-masukan" aria-selected="false">Masukan & catatan</button>
+        <button type="button" role="tab" id="tab-pemeriksaan" aria-controls="panel-pemeriksaan" aria-selected="false">Periksa unsur penting <span id="jumlah-tanda" class="hitung"></span></button>
+      </div>
+
+      <div id="panel-berdampingan" class="panel" role="tabpanel" aria-labelledby="tab-berdampingan">
+        <div class="dua-kolom">
+          <div>
+            <h3>Teks awal</h3>
+            <div id="teks-awal" class="teks"></div>
+          </div>
+          <div>
+            <h3>Revisi (dapat disunting langsung)</h3>
+            <label class="sr-only" for="teks-revisi">Teks revisi yang dapat disunting</label>
+            <textarea id="teks-revisi" class="teks" rows="14" spellcheck="false"></textarea>
+            <p class="bantuan">Anda bebas merapikan kembali teks revisi di atas. Tab perbandingan dan pemeriksaan akan langsung diperbarui.</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="panel-perbandingan" class="panel" role="tabpanel" aria-labelledby="tab-perbandingan" hidden>
+        <p class="legenda"><del>dihapus</del> <ins>ditambahkan</ins> <span id="statistik-diff"></span></p>
+        <div id="teks-diff" class="teks"></div>
+      </div>
+
+      <div id="panel-masukan" class="panel" role="tabpanel" aria-labelledby="tab-masukan" hidden>
+        <h3 id="judul-daftar-masukan">Masukan</h3>
+        <ol id="daftar-masukan" class="daftar"></ol>
+        <h3>Catatan yang perlu diperiksa</h3>
+        <ul id="daftar-catatan" class="daftar"></ul>
+        <h3>Saran pilihan kata untuk revisi</h3>
+        <p class="bantuan">Saran lokal ejaan dan diksi. Klik pilihan kata untuk langsung menerapkannya ke kolom revisi.</p>
+        <ul id="saran-revisi" class="daftar-saran" aria-live="polite"></ul>
+      </div>
+
+      <div id="panel-pemeriksaan" class="panel" role="tabpanel" aria-labelledby="tab-pemeriksaan" hidden>
+        <p class="peringatan">
+          Pemeriksaan otomatis ini mencocokkan angka, satuan, sitasi, rujukan pasal/peraturan, kata hukum normatif, penanda kepastian/negasi, pembatas, atribusi, sebab-akibat, dan istilah terkunci antara teks awal dan revisi.
+        </p>
+        <div id="hasil-pemeriksaan"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal Dialog Pengaturan Kunci API & Penyedia (BYOK) -->
+  <dialog id="dialog-kunci" class="modal-kunci">
+    <div class="modal-konten">
+      <div class="modal-kepala">
+        <h2>Pengaturan API Key & Model</h2>
+        <button type="button" id="tombol-tutup-kunci" class="tombol-silang" aria-label="Tutup modal">✕</button>
+      </div>
+
+      <form id="formulir-kunci">
+        <label class="label" for="pilihan-penyedia">Penyedia Model AI</label>
+        <select id="pilihan-penyedia">
+          <option value="anthropic">Anthropic Claude (Official API)</option>
+          <option value="ollama">Ollama Cloud / Self-Hosted (misal: gpt-oss:120b)</option>
+        </select>
+
+        <div id="grup-endpoint-ollama" hidden>
+          <label class="label" for="endpoint-ollama">Endpoint URL Ollama</label>
+          <input type="text" id="endpoint-ollama" placeholder="https://ollama.com atau http://localhost:11434" spellcheck="false">
+          <p class="bantuan">URL server Ollama Anda. Default untuk Ollama Cloud: <code>https://ollama.com</code>.</p>
+        </div>
+
+        <label class="label" for="masukan-kunci" id="label-kunci">API Key / Token</label>
+        <div class="baris-input-kunci">
+          <input type="password" id="masukan-kunci" autocomplete="off" placeholder="sk-ant-api03-..." spellcheck="false">
+          <button type="button" id="tombol-lihat-kunci" aria-label="Lihat kunci API">Lihat</button>
+        </div>
+        <p class="bantuan" id="bantuan-kunci">
+          Dapatkan API key Anda di console penyedia.
+        </p>
+
+        <label class="label" for="pilihan-model">Pilihan Model</label>
+        <select id="pilihan-model">
+          <!-- Opsi diisi secara dinamis oleh aplikasi.js sesuai penyedia -->
+        </select>
+
+        <label class="opsi" for="simpan-permanen" style="margin-top: 14px;">
+          <input type="checkbox" id="simpan-permanen" checked>
+          <span><strong>Simpan di browser ini (localStorage)</strong><small>Kunci tetap ada saat tab ditutup agar tidak perlu mengisi ulang. Jika tidak dicentang, kunci hanya disimpan di memori sesi saat ini.</small></span>
+        </label>
+
+        <div class="kotak-info-privasi">
+          <strong>🛡️ Jaminan Privasi & Keamanan (Zero-Server BYOK):</strong>
+          <ul>
+            <li>Aplikasi ini berjalan <strong>100% di browser Anda</strong> (statis murni tanpa server penampung).</li>
+            <li>API Key Anda <strong>TIDAK PERNAH dikirim ke server hosting publik</strong>.</li>
+            <li>Permintaan penyuntingan dikirim langsung dari browser Anda ke endpoint AI resmi (Anthropic / Ollama).</li>
+          </ul>
+        </div>
+
+        <div id="pesan-modal-kunci" class="peringatan" hidden></div>
+
+        <div class="baris-aksi-modal">
+          <button type="button" id="tombol-hapus-kunci" class="tombol-bahaya" hidden>Hapus Kunci dari Browser</button>
+          <div class="grup-tombol-kanan">
+            <button type="submit" class="tombol-utama">Simpan Pengaturan</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <footer class="kaki">
+    Editor Akademik Dimas · Aplikasi penyuntingan ilmiah bahasa Indonesia. Menjaga integritas sitasi, angka, dan makna fakta.
+  </footer>
+</body>
+</html>
