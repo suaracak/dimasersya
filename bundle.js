@@ -1208,13 +1208,13 @@
       ep = ep.replace(/\/api\/chat$/i, '');
       ep = ep.replace(/\/v1(?:\/chat\/completions)?$/i, '');
       ep = ep.replace(/\/+$/, '');
-      if (!ep) ep = 'https://ollama.com';
+      if (!ep) ep = 'https://ollama-proxy.sundysundala.workers.dev';
       return ep;
     }
 
     async function suntingDenganOllama(
       masukan,
-      { kunci, model = 'gpt-oss:120b', endpoint = 'https://ollama.com' },
+      { kunci, model = 'gpt-oss:120b', endpoint = 'https://ollama-proxy.sundysundala.workers.dev' },
       signal
     ) {
       const modelNama = model || 'gpt-oss:120b';
@@ -1280,7 +1280,8 @@
           if (signal?.aborted) throw new GalatOllama('dibatalkan', 'Penyuntingan dibatalkan.');
           throw new GalatOllama(
             'jaringan',
-            `Gagal menghubungi endpoint Ollama (${urlDasar}): ${err.message}. Pastikan URL endpoint dapat diakses dan CORS diizinkan.`
+            `Gagal menghubungi proxy Ollama (${urlDasar}). /api/chat: ${err.message}; /v1/chat/completions: ${err2.message}. ` +
+            `Periksa URL Worker dan pastikan origin halaman ini ada di ORIGIN_DIIZINKAN.`
           );
         }
       }
