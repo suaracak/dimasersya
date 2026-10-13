@@ -65,15 +65,43 @@ export function susunPesan(masukan) {
   ].join('\n');
 }
 
+function normalisasiArrayString(arr) {
+  // Terima string[], atau objek[] (misal: {bagian, alasan} atau {teks, pesan})
+  if (!Array.isArray(arr)) {
+    if (typeof arr === 'string' && arr.trim()) return [arr.trim()];
+    return null;
+  }
+  return arr.map((item) => {
+    if (typeof item === 'string') return item.trim();
+    if (item && typeof item === 'object') {
+      const nilai =
+        item.alasan || item.bagian || item.teks || item.pesan ||
+        item.isi || item.komentar || item.masukan || item.catatan ||
+        Object.values(item).find((v) => typeof v === 'string' && v.trim());
+      return nilai ? String(nilai).trim() : JSON.stringify(item);
+    }
+    return String(item).trim();
+  }).filter(Boolean);
+}
+
 export function validasiHasil(data) {
   if (!data || typeof data !== 'object') return null;
   const { masukan, revisi, catatan } = data;
   if (typeof revisi !== 'string' || !revisi.trim()) return null;
-  if (!Array.isArray(masukan) || !masukan.every((m) => typeof m === 'string')) return null;
-  if (!Array.isArray(catatan) || !catatan.every((c) => typeof c === 'string')) return null;
+
+  const masukanNormal = normalisasiArrayString(masukan);
+  if (!masukanNormal) return null;
+
+  // catatan boleh tidak ada / null / string / array
+  let catatanNormal = [];
+  if (catatan != null) {
+    const hasil = normalisasiArrayString(catatan);
+    if (hasil) catatanNormal = hasil;
+  }
+
   return {
-    masukan: masukan.map((m) => m.trim()).filter(Boolean).slice(0, 3),
+    masukan: masukanNormal.slice(0, 3),
     revisi: revisi.trim(),
-    catatan: catatan.map((c) => c.trim()).filter(Boolean),
+    catatan: catatanNormal,
   };
 }
