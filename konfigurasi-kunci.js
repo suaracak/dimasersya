@@ -26,7 +26,7 @@ export const MODEL_OLLAMA_PILIHAN = [
   { id: 'mistral-large', nama: 'Mistral Large', ringkas: 'Mistral Large' },
 ];
 
-export const ENDPOINT_OLLAMA_DEFAULT = 'https://ollama.com';
+export const ENDPOINT_OLLAMA_DEFAULT = 'https://ollama-proxy.sundysundala.workers.dev';
 
 let memoriKunci = {
   anthropic: '',
@@ -115,7 +115,13 @@ export function simpanModel(model, penyedia = ambilPenyediaAktif()) {
 
 export function ambilEndpointOllama() {
   try {
-    return localStorage.getItem(ENDPOINT_OLLAMA_KEY) || ENDPOINT_OLLAMA_DEFAULT;
+    const tersimpan = localStorage.getItem(ENDPOINT_OLLAMA_KEY);
+    // Migrasi: hapus nilai lama yang menunjuk langsung ke ollama.com
+    if (tersimpan === 'https://ollama.com' || tersimpan === 'https://ollama.com/') {
+      localStorage.removeItem(ENDPOINT_OLLAMA_KEY);
+      return ENDPOINT_OLLAMA_DEFAULT;
+    }
+    return tersimpan || ENDPOINT_OLLAMA_DEFAULT;
   } catch {
     return ENDPOINT_OLLAMA_DEFAULT;
   }
